@@ -1,0 +1,112 @@
+
+df_train = pd.read_csv("Dataset.csv", header=None)
+df_train
+plt.plot(df_train.iloc[1,:186])
+plt.plot(df_train.iloc[4,:186])
+# plot the circle of value counts in dataset
+def plot_equilibre(equilibre):
+    plt.figure(figsize=(5,5))
+    my_circle=plt.Circle( (0,0), 0.7, color='white')
+    plt.pie(equilibre, labels=['n','q','v','s','f'], colors=['red','green','blue','skyblue','orange'],autopct='%1.1f%%')
+    p=plt.gcf()
+    p.gca().add_artist(my_circle)
+    plt.show()
+print(df_train[187].value_counts())
+plot_equilibre(df_train[187].value_counts())
+X= df_train.values[:, :-1]
+X
+y= df_train.values[:, -1].astype(int)
+y
+# Split the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+#defining global variables to store accuracy and other metrics
+precision = []
+recall = []
+fscore = []
+accuracy = []
+#function to calculate various metrics such as accuracy, precision etc
+def calculateMetrics(algorithm, predict, testY):
+    testY = testY.astype('int')
+    predict = predict.astype('int')
+    p = precision_score(testY, predict,average='macro') * 100
+    r = recall_score(testY, predict,average='macro') * 100
+    f = f1_score(testY, predict,average='macro') * 100
+    a = accuracy_score(testY,predict)*100 
+    accuracy.append(a)
+    precision.append(p)
+    recall.append(r)
+    fscore.append(f)
+    print(algorithm+' Accuracy    : '+str(a))
+    print(algorithm+' Precision   : '+str(p))
+    print(algorithm+' Recall      : '+str(r))
+    print(algorithm+' FSCORE      : '+str(f))
+    report=classification_report(predict, testY,target_names=labels)
+    print('\n',algorithm+" classification report\n",report)
+    conf_matrix = confusion_matrix(testY, predict) 
+    plt.figure(figsize =(5, 5)) 
+    ax = sns.heatmap(conf_matrix, xticklabels = labels, yticklabels = labels, annot = True, cmap="Blues" ,fmt ="g");
+    ax.set_ylim([0,len(labels)])
+    plt.title(algorithm+" Confusion matrix") 
+    plt.ylabel('True class') 
+    plt.xlabel('Predicted class') 
+    plt.show()
+# Check if the pkl file exists
+if os.path.exists('KNN_weights.pkl'):
+    # Load the model from the pkl file
+    classifier= joblib.load('KNN_weights.pkl')
+    predict = classifier.predict(X_test)
+    calculateMetrics("KNN Classifier", predict, y_test)
+else:
+    classifier = KNeighborsClassifier(n_neighbors=20)
+    # Train the classifier on the training data
+    classifier.fit(X_train, y_train)
+    # Make predictions on the test data
+    predict=classifier.predict(X_test)
+    # Save the model weights to a pkl file
+    joblib.dump(classifier, 'KNN_weights.pkl')
+    print("KNN classifier_model trained and model weights saved.")
+    calculateMetrics("KNeighborsClassifier", predict, y_test)
+# Check if the pkl file exists
+if os.path.exists('rf_classifier_weights.pkl'):
+    # Load the model from the pkl file
+    rf_classifier= joblib.load('rf_classifier_weights.pkl')
+    predict = rf_classifier.predict(X_test)
+    calculateMetrics("RandomForestClassifier", predict, y_test)
+else:
+    rf_classifier = RandomForestClassifier()
+    # Train the classifier on the training data
+    rf_classifier.fit(X_train, y_train)
+    # Make predictions on the test data
+    predict=rf_classifier.predict(X_test)
+    joblib.dump(rf_classifier, 'rf_classifier_weights.pkl')
+    print("rf_classifier_model trained and model weights saved.")
+    calculateMetrics("RandomForestClassifier", predict, y_test)
+#showing all algorithms performance values
+columns = ["Algorithm Name","Precison","Recall","FScore","Accuracy"]
+values = []
+algorithm_names = ["KNeighborsClassifier", "RandomForestClassifier"]
+for i in range(len(algorithm_names)):
+    values.append([algorithm_names[i],precision[i],recall[i],fscore[i],accuracy[i]])
+    
+temp = pd.DataFrame(values,columns=columns)
+temp
+dataset = pd.read_csv(filename)
+
+A='Normal'
+B='Artial Premature'
+C='Premature ventricular contraction'
+D='Fusion of ventricular and normal'
+E='Fusion of paced and normal'
+
+predict = rf_classifier.predict(dataset)
+for i in range(len(predict)):
+    if predict[i] == 0:
+        print("{} :{} ".format(dataset.iloc[i,:],A))
+    elif predict[i]== 1:
+        print("{} :{} ".format(dataset.iloc[i, :],B))
+    elif predict[i]== 2:
+        print("{} :{} ".format(dataset.iloc[i, :],C))
+    elif predict[i]==3:
+        print("{} :{} ".format(dataset.iloc[i, :],D))
+    else:
+        print("{} :{} ".format(dataset.iloc[i,:],E))
